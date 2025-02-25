@@ -1,4 +1,3 @@
-# Developed by dnoobnerd [https://dnoobnerd.netlify.app]    Made with Streamlit
 
 
 ###### Packages Used ######
@@ -134,7 +133,7 @@ def run():
     st.sidebar.markdown("# Choose Something...")
     activities = ["User", "Feedback", "About", "Admin"]
     choice = st.sidebar.selectbox("Choose among the given options:", activities)
-    link = '<b>Built due to Majboori by <a href="https://github.com/ShadowAniket" style="text-decoration: none; color: #021659;">Aniket</a></b>' 
+    link = '<b>Built by <a href="https://github.com/ShadowAniket" style="text-decoration: none; color: #021659;">Aniket</a></b>' 
     st.sidebar.markdown(link, unsafe_allow_html=True)
     st.sidebar.markdown('''
         <!-- site visitors -->
@@ -252,151 +251,148 @@ def run():
                     st.text('Name: '+resume_data['name'])
                     st.text('Email: ' + resume_data['email'])
                     st.text('Contact: ' + resume_data['mobile_number'])
-                    st.text('Degree: '+str(resume_data['degree']))                    
                     st.text('Resume pages: '+str(resume_data['no_of_pages']))
 
                 except:
                     pass
+                
                 ## Predicting Candidate Experience Level 
 
-                ### Trying with different possibilities
+                # Define keywords for each level
+                internship_keywords = ['INTERNSHIP', 'INTERNSHIPS', 'Internship', 'Internships']
+                experience_keywords = ['EXPERIENCE', 'WORK EXPERIENCE', 'Experience', 'Work Experience']
+
+                # Initialize candidate level
                 cand_level = ''
-                if resume_data['no_of_pages'] < 1:                
+
+                # Check if the number of pages is less than 1 (Fresher level)
+                if resume_data['no_of_pages'] < 1:
                     cand_level = "NA"
-                    st.markdown( '''<h4 style='text-align: left; color: #d73b5c;'>You are at Fresher level!</h4>''',unsafe_allow_html=True)
-                
-                #### if internship then intermediate level
-                elif 'INTERNSHIP' in resume_text:
+                    st.markdown('<h4 style="text-align: left; color: #d73b5c;">You are at Fresher level!</h4>', unsafe_allow_html=True)
+
+                # Check if any of the internship keywords are present (Intermediate level)
+                elif any(keyword in resume_text for keyword in internship_keywords):
                     cand_level = "Intermediate"
-                    st.markdown('''<h4 style='text-align: left; color: #1ed760;'>You are at intermediate level!</h4>''',unsafe_allow_html=True)
-                elif 'INTERNSHIPS' in resume_text:
-                    cand_level = "Intermediate"
-                    st.markdown('''<h4 style='text-align: left; color: #1ed760;'>You are at intermediate level!</h4>''',unsafe_allow_html=True)
-                elif 'Internship' in resume_text:
-                    cand_level = "Intermediate"
-                    st.markdown('''<h4 style='text-align: left; color: #1ed760;'>You are at intermediate level!</h4>''',unsafe_allow_html=True)
-                elif 'Internships' in resume_text:
-                    cand_level = "Intermediate"
-                    st.markdown('''<h4 style='text-align: left; color: #1ed760;'>You are at intermediate level!</h4>''',unsafe_allow_html=True)
-                
-                #### if Work Experience/Experience then Experience level
-                elif 'EXPERIENCE' in resume_text:
+                    st.markdown('<h4 style="text-align: left; color: #1ed760;">You are at intermediate level!</h4>', unsafe_allow_html=True)
+
+                # Check if any of the experience keywords are present (Experienced level)
+                elif any(keyword in resume_text for keyword in experience_keywords):
                     cand_level = "Experienced"
-                    st.markdown('''<h4 style='text-align: left; color: #fba171;'>You are at experience level!''',unsafe_allow_html=True)
-                elif 'WORK EXPERIENCE' in resume_text:
-                    cand_level = "Experienced"
-                    st.markdown('''<h4 style='text-align: left; color: #fba171;'>You are at experience level!''',unsafe_allow_html=True)
-                elif 'Experience' in resume_text:
-                    cand_level = "Experienced"
-                    st.markdown('''<h4 style='text-align: left; color: #fba171;'>You are at experience level!''',unsafe_allow_html=True)
-                elif 'Work Experience' in resume_text:
-                    cand_level = "Experienced"
-                    st.markdown('''<h4 style='text-align: left; color: #fba171;'>You are at experience level!''',unsafe_allow_html=True)
+                    st.markdown('<h4 style="text-align: left; color: #fba171;">You are at experience level!</h4>', unsafe_allow_html=True)
+
+                # Default to Fresher level if no other conditions are met
                 else:
                     cand_level = "Fresher"
-                    st.markdown('''<h4 style='text-align: left; color: #fba171;'>You are at Fresher level!!''',unsafe_allow_html=True)
+                    st.markdown('<h4 style="text-align: left; color: #fba171;">You are at Fresher level!!</h4>', unsafe_allow_html=True)
+
 
 
                 ## Skills Analyzing and Recommendation
                 st.subheader("**Skills Recommendation 💡**")
-                
+
                 ### Current Analyzed Skills
+                if not isinstance(resume_data['skills'], list):
+                    print("Warning: resume_data['skills'] is not a list!")
+                    if isinstance(resume_data['skills'], str):
+                        resume_data['skills'] = resume_data['skills'].split(",")  # Convert comma-separated string to list
+                    else:
+                        resume_data['skills'] = []  # Default to an empty list
+
+                # Clean skills (remove spaces, avoid case issues)
+                resume_data['skills'] = [skill.strip() for skill in resume_data['skills']]
+
+                # Debugging: Print extracted skills
+                print("Extracted Skills:", resume_data['skills'])
+
                 keywords = st_tags(label='### Your Current Skills',
-                text='See our skills recommendation below',value=resume_data['skills'],key = '1  ')
+                    text='See our skills recommendation below', value=resume_data['skills'], key='1')
 
                 ### Keywords for Recommendations
-                ds_keyword = ['tensorflow','keras','pytorch','machine learning','deep Learning','flask','streamlit']
-                web_keyword = ['react', 'django', 'node jS', 'react js', 'php', 'laravel', 'magento', 'wordpress','javascript', 'angular js', 'C#', 'Asp.net', 'flask']
-                android_keyword = ['android','android development','flutter','kotlin','xml','kivy']
-                ios_keyword = ['ios','ios development','swift','cocoa','cocoa touch','xcode']
-                uiux_keyword = ['ux','adobe xd','figma','zeplin','balsamiq','ui','prototyping','wireframes','storyframes','adobe photoshop','photoshop','editing','adobe illustrator','illustrator','adobe after effects','after effects','adobe premier pro','premier pro','adobe indesign','indesign','wireframe','solid','grasp','user research','user experience']
-                n_any = ['english','communication','writing', 'microsoft office', 'leadership','customer management', 'social media']
+                ds_keyword = ['tensorflow', 'keras', 'pytorch', 'machine learning', 'deep learning', 'flask', 'streamlit']
+                web_keyword = ['react', 'django', 'node js', 'react js', 'php', 'laravel', 'magento', 'wordpress', 'javascript', 'angular js', 'C#', 'Asp.net', 'flask']
+                android_keyword = ['android', 'android development', 'flutter', 'kotlin', 'xml', 'kivy']
+                ios_keyword = ['ios', 'ios development', 'swift', 'cocoa', 'cocoa touch', 'xcode']
+                uiux_keyword = ['ux', 'adobe xd', 'figma', 'zeplin', 'balsamiq', 'ui', 'prototyping', 'wireframes', 'storyframes', 'adobe photoshop', 'photoshop', 'editing', 'adobe illustrator', 'illustrator', 'adobe after effects', 'after effects', 'adobe premier pro', 'premier pro', 'adobe indesign', 'indesign', 'wireframe', 'solid', 'grasp', 'user research', 'user experience']
+                n_any = ['english', 'communication', 'writing', 'microsoft office', 'leadership', 'customer management', 'social media']
+
                 ### Skill Recommendations Starts                
                 recommended_skills = []
                 reco_field = ''
                 rec_course = ''
 
-                ### condition starts to check skills from keywords and predict field
-                for i in resume_data['skills']:
-                
+                ### Skill Matching Logic
+                for skill in resume_data['skills']:
+                    skill_cleaned = skill.strip().lower()  # Clean and lowercase for comparison
+
                     #### Data science recommendation
-                    if i.lower() in ds_keyword:
-                        print(i.lower())
+                    if skill_cleaned in ds_keyword:
+                        print(f"✅ Matched: {skill} (Data Science)")
                         reco_field = 'Data Science'
                         st.success("** Our analysis says you are looking for Data Science Jobs.**")
-                        recommended_skills = ['Data Visualization','Predictive Analysis','Statistical Modeling','Data Mining','Clustering & Classification','Data Analytics','Quantitative Analysis','Web Scraping','ML Algorithms','Keras','Pytorch','Probability','Scikit-learn','Tensorflow',"Flask",'Streamlit']
+                        recommended_skills = ['Data Visualization', 'Predictive Analysis', 'Statistical Modeling', 'Data Mining', 'Clustering & Classification', 'Data Analytics', 'Quantitative Analysis', 'Web Scraping', 'ML Algorithms', 'Keras', 'Pytorch', 'Probability', 'Scikit-learn', 'Tensorflow', "Flask", 'Streamlit']
                         recommended_keywords = st_tags(label='### Recommended skills for you.',
-                        text='Recommended skills generated from System',value=recommended_skills,key = '2')
-                        st.markdown('''<h5 style='text-align: left; color: #1ed760;'>Adding this skills to resume will boost🚀 the chances of getting a Job</h5>''',unsafe_allow_html=True)
-                        # course recommendation
+                            text='Recommended skills generated from System', value=recommended_skills, key='2')
+                        st.markdown('''<h5 style='text-align: left; color: #1ed760;'>Adding these skills to your resume will boost 🚀 your chances of getting a Job</h5>''', unsafe_allow_html=True)
                         rec_course = course_recommender(ds_course)
                         break
 
                     #### Web development recommendation
-                    elif i.lower() in web_keyword:
-                        print(i.lower())
+                    elif skill_cleaned in web_keyword:
+                        print(f"✅ Matched: {skill} (Web Development)")
                         reco_field = 'Web Development'
                         st.success("** Our analysis says you are looking for Web Development Jobs **")
-                        recommended_skills = ['React','Django','Node JS','React JS','php','laravel','Magento','wordpress','Javascript','Angular JS','c#','Flask','SDK']
+                        recommended_skills = ['React', 'Django', 'Node JS', 'React JS', 'PHP', 'Laravel', 'Magento', 'WordPress', 'JavaScript', 'Angular JS', 'C#', 'Flask', 'SDK']
                         recommended_keywords = st_tags(label='### Recommended skills for you.',
-                        text='Recommended skills generated from System',value=recommended_skills,key = '3')
-                        st.markdown('''<h5 style='text-align: left; color: #1ed760;'>Adding this skills to resume will boost🚀 the chances of getting a Job💼</h5>''',unsafe_allow_html=True)
-                        # course recommendation
+                            text='Recommended skills generated from System', value=recommended_skills, key='3')
                         rec_course = course_recommender(web_course)
                         break
 
                     #### Android App Development
-                    elif i.lower() in android_keyword:
-                        print(i.lower())
+                    elif skill_cleaned in android_keyword:
+                        print(f"✅ Matched: {skill} (Android Development)")
                         reco_field = 'Android Development'
                         st.success("** Our analysis says you are looking for Android App Development Jobs **")
-                        recommended_skills = ['Android','Android development','Flutter','Kotlin','XML','Java','Kivy','GIT','SDK','SQLite']
+                        recommended_skills = ['Android', 'Android development', 'Flutter', 'Kotlin', 'XML', 'Java', 'Kivy', 'GIT', 'SDK', 'SQLite']
                         recommended_keywords = st_tags(label='### Recommended skills for you.',
-                        text='Recommended skills generated from System',value=recommended_skills,key = '4')
-                        st.markdown('''<h5 style='text-align: left; color: #1ed760;'>Adding this skills to resume will boost🚀 the chances of getting a Job💼</h5>''',unsafe_allow_html=True)
-                        # course recommendation
+                            text='Recommended skills generated from System', value=recommended_skills, key='4')
                         rec_course = course_recommender(android_course)
                         break
 
                     #### IOS App Development
-                    elif i.lower() in ios_keyword:
-                        print(i.lower())
+                    elif skill_cleaned in ios_keyword:
+                        print(f"✅ Matched: {skill} (iOS Development)")
                         reco_field = 'IOS Development'
                         st.success("** Our analysis says you are looking for IOS App Development Jobs **")
-                        recommended_skills = ['IOS','IOS Development','Swift','Cocoa','Cocoa Touch','Xcode','Objective-C','SQLite','Plist','StoreKit',"UI-Kit",'AV Foundation','Auto-Layout']
+                        recommended_skills = ['IOS', 'IOS Development', 'Swift', 'Cocoa', 'Cocoa Touch', 'Xcode', 'Objective-C', 'SQLite', 'Plist', 'StoreKit', "UI-Kit", 'AV Foundation', 'Auto-Layout']
                         recommended_keywords = st_tags(label='### Recommended skills for you.',
-                        text='Recommended skills generated from System',value=recommended_skills,key = '5')
-                        st.markdown('''<h5 style='text-align: left; color: #1ed760;'>Adding this skills to resume will boost🚀 the chances of getting a Job💼</h5>''',unsafe_allow_html=True)
-                        # course recommendation
+                            text='Recommended skills generated from System', value=recommended_skills, key='5')
                         rec_course = course_recommender(ios_course)
                         break
 
-                    #### Ui-UX Recommendation
-                    elif i.lower() in uiux_keyword:
-                        print(i.lower())
+                    #### UI-UX Recommendation
+                    elif skill_cleaned in uiux_keyword:
+                        print(f"✅ Matched: {skill} (UI-UX Development)")
                         reco_field = 'UI-UX Development'
                         st.success("** Our analysis says you are looking for UI-UX Development Jobs **")
-                        recommended_skills = ['UI','User Experience','Adobe XD','Figma','Zeplin','Balsamiq','Prototyping','Wireframes','Storyframes','Adobe Photoshop','Editing','Illustrator','After Effects','Premier Pro','Indesign','Wireframe','Solid','Grasp','User Research']
+                        recommended_skills = ['UI', 'User Experience', 'Adobe XD', 'Figma', 'Zeplin', 'Balsamiq', 'Prototyping', 'Wireframes', 'Storyframes', 'Adobe Photoshop', 'Editing', 'Illustrator', 'After Effects', 'Premier Pro', 'Indesign', 'Wireframe', 'Solid', 'Grasp', 'User Research']
                         recommended_keywords = st_tags(label='### Recommended skills for you.',
-                        text='Recommended skills generated from System',value=recommended_skills,key = '6')
-                        st.markdown('''<h5 style='text-align: left; color: #1ed760;'>Adding this skills to resume will boost🚀 the chances of getting a Job💼</h5>''',unsafe_allow_html=True)
-                        # course recommendation
+                            text='Recommended skills generated from System', value=recommended_skills, key='6')
                         rec_course = course_recommender(uiux_course)
                         break
 
                     #### For Not Any Recommendations
-                    elif i.lower() in n_any:
-                        print(i.lower())
-                        reco_field = 'General'
-                        st.warning("** Currently our tool only predicts and recommends for Data Science, Web, Android, IOS and UI/UX Development**")
+                    elif skill_cleaned in n_any:
+                        print(f"✅ Matched: {skill} (General Skills - No Specific Category)")
+                        reco_field = 'NA'
+                        st.warning("** Currently, our tool only predicts and recommends for Data Science, Web, Android, IOS, and UI/UX Development**")
                         recommended_skills = ['No Recommendations']
                         recommended_keywords = st_tags(label='### Recommended skills for you.',
-                        text='Currently No Recommendations',value=recommended_skills,key = '6')
-                        st.markdown('''<h5 style='text-align: left; color: #092851;'>Maybe Available in Future Updates</h5>''',unsafe_allow_html=True)
-                        # course recommendation
+                            text='Currently No Recommendations', value=recommended_skills, key='6')
                         rec_course = "Sorry! Not Available for this Field"
                         break
 
+                    else:
+                        print(f"❌ No match found for: {skill}")
 
                 ## Resume Scorer & Resume Writing Tips
                 st.subheader("**Resume Tips & Ideas 🥂**")
@@ -456,7 +452,6 @@ def run():
                 st.success('** Your Resume Writing Score: ' + str(resume_score)+'**')
                 st.warning("** Note: This score is calculated based on the content that you have in your Resume. **")
 
-                # print(str(sec_token), str(ip_add), (host_name), (dev_user), (os_name_ver), (latlong), (city), (state), (country), (act_name), (act_mail), (act_mob), resume_data['name'], resume_data['email'], str(resume_score), timestamp, str(resume_data['no_of_pages']), reco_field, cand_level, str(resume_data['skills']), str(recommended_skills), str(rec_course), pdf_name)
 
 
                 ### Getting Current Date and Time
@@ -557,7 +552,7 @@ def run():
             <b>Feedback -</b> <br/>
             A place where user can suggest some feedback about the tool.<br/><br/>
             <b>Admin -</b> <br/>
-            For login use <b>admin</b> as username and <b>admin1</b> as password.<br/>
+            <!--For login use <b>admin</b> as username and <b>admin1</b> as password.<br/> -->
             It will load all the required stuffs and perform analysis.
         </p><br/><br/>
 
