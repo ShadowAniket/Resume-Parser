@@ -267,7 +267,7 @@ def run():
 
                 # Check if the number of pages is less than 1 (Fresher level)
                 if resume_data['no_of_pages'] < 1:
-                    cand_level = "NA"
+                    cand_level = "General"
                     st.markdown('<h4 style="text-align: left; color: #d73b5c;">You are at Fresher level!</h4>', unsafe_allow_html=True)
 
                 # Check if any of the internship keywords are present (Intermediate level)
@@ -383,7 +383,7 @@ def run():
                     #### For Not Any Recommendations
                     elif skill_cleaned in n_any:
                         print(f"✅ Matched: {skill} (General Skills - No Specific Category)")
-                        reco_field = 'NA'
+                        reco_field = 'General'
                         st.warning("** Currently, our tool only predicts and recommends for Data Science, Web, Android, IOS, and UI/UX Development**")
                         recommended_skills = ['No Recommendations']
                         recommended_keywords = st_tags(label='### Recommended skills for you.',
