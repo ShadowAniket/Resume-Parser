@@ -1,5 +1,3 @@
-
-
 ###### Packages Used ######
 import streamlit as st # core package used in this project
 import pandas as pd
@@ -16,7 +14,6 @@ import plotly.express as px # to create visualisations at the admin session
 import plotly.graph_objects as go
 #from geopy.geocoders import Nominatim
 # libraries used to parse the pdf files
-from pyresparser import ResumeParser
 from pdfminer3.layout import LAParams, LTTextBox
 from pdfminer3.pdfpage import PDFPage
 from pdfminer3.pdfinterp import PDFResourceManager
@@ -29,7 +26,22 @@ import difflib
 from Courses import ds_course,web_course,android_course,ios_course,uiux_course,resume_videos,interview_videos
 import nltk
 nltk.download('stopwords')
+# Add this near the top of your imports
+import spacy
+try:
+    nlp = spacy.load('en_core_web_sm')
+except OSError:
+    print('Downloading language model for the spaCy NLP library\n'
+        "(don't worry, this will only happen once)")
+    from spacy.cli import download
+    download('en_core_web_sm')
+    nlp = spacy.load('en_core_web_sm')
 
+import re
+from spacy.matcher import Matcher
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 ###### Preprocessing functions ######
 
@@ -123,9 +135,155 @@ st.set_page_config(
    page_icon='./Logo/recommend.png',
 )
 
+# Define SKILLS_DB at the module level (top of file)
+SKILLS_DB = {
+    'technical': {
+        'programming': [
+            'python', 'java', 'c++', 'ruby', 'javascript', 'php', 'swift', 'r programming',
+            'scala', 'golang', 'typescript', 'kotlin', 'rust', 'matlab'
+        ],
+        'web_dev': [
+            'html', 'css', 'react', 'angular', 'node.js', 'vue.js', 'django', 'flask',
+            'bootstrap', 'jquery', 'sass', 'less', 'webpack', 'redux', 'graphql'
+        ],
+        'databases': [
+            'sql', 'mysql', 'postgresql', 'mongodb', 'oracle', 'redis', 'elasticsearch',
+            'dynamodb', 'cassandra', 'firebase'
+        ],
+        'cloud_devops': [
+            'git', 'docker', 'kubernetes', 'jenkins', 'aws', 'azure', 'gcp', 'terraform',
+            'ansible', 'ci/cd', 'nginx', 'linux'
+        ],
+        'ai_ml': [
+            'tensorflow', 'pytorch', 'scikit-learn', 'machine learning', 'deep learning',
+            'nlp', 'computer vision', 'data analysis', 'pandas', 'numpy', 'scipy'
+        ],
+        'design': [
+            'photoshop', 'illustrator', 'figma', 'sketch', 'adobe xd', 'indesign',
+            'after effects', 'premiere pro', 'ui/ux', 'responsive design'
+        ]
+    },
+    'soft': [
+        'leadership', 'communication', 'problem solving', 'team work', 'time management',
+        'project management', 'analytical', 'strategic thinking', 'detail oriented',
+        'agile', 'scrum', 'critical thinking', 'presentation', 'negotiation'
+    ]
+}
 
 ###### Main function run() ######
 
+def extract_text_from_pdf(file_path):
+    """Extract text from PDF using pdfminer"""
+    return pdf_reader(file_path)
+
+def extract_name(nlp_text, matcher):
+    """Extract name from text using spaCy"""
+    pattern = [{'POS': 'PROPN'}, {'POS': 'PROPN'}]
+    matcher.add('NAME', [pattern])
+    matches = matcher(nlp_text)
+    
+    for match_id, start, end in matches:
+        span = nlp_text[start:end]
+        return span.text
+    return None
+
+def extract_email(text):
+    """Extract email from text using regex"""
+    email = re.findall(r"([^@|\s]+@[^@]+\.[^@|\s]+)", text)
+    if email:
+        try:
+            return email[0].split()[0].strip(';')
+        except IndexError:
+            return None
+
+def extract_mobile_number(text):
+    """Extract mobile number from text using regex"""
+    phone = re.findall(re.compile(r'(?:(?:\+?([1-9]|[0-9][0-9]|[0-9][0-9][0-9])\s*(?:[.-]\s*)?)?(?:\(\s*([2-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9])\s*\)|([0-9][1-9]|[0-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9]))\s*(?:[.-]\s*)?)?([2-9]1[02-9]|[2-9][02-9]1|[2-9][02-9]{2})\s*(?:[.-]\s*)?([0-9]{4})(?:\s*(?:#|x\.?|ext\.?|extension)\s*(\d+))?'), text)
+    if phone:
+        number = ''.join(phone[0])
+        if len(number) > 10:
+            return '+' + number
+        return number
+
+def extract_skills(text, noun_chunks):
+    """Extract skills from text using spaCy"""
+    skills = []
+    
+    # Process text with spaCy
+    doc = nlp(text.text.lower() if hasattr(text, 'text') else text.lower())
+    
+    # Initialize containers for skills
+    categorized_skills = {
+        'programming': [],
+        'web_dev': [],
+        'databases': [], 
+        'cloud_devops': [],
+        'ai_ml': [],
+        'design': [],
+        'soft_skills': [],
+        'technical_term': []
+    }
+    
+    # Check for skills matches in each category
+    for category, skill_list in SKILLS_DB['technical'].items():
+        for skill in skill_list:
+            if skill.lower() in doc.text:
+                categorized_skills[category].append(skill)
+                skills.append((skill, category))
+                
+    # Check soft skills
+    for skill in SKILLS_DB['soft']:
+        if skill.lower() in doc.text:
+            categorized_skills['soft_skills'].append(skill) 
+            skills.append((skill, 'soft_skills'))
+            
+    # Process noun chunks for additional technical terms
+    for chunk in noun_chunks:
+        token = chunk.text.lower().strip()
+        tech_indicators = ['api', 'sdk', 'framework', 'library', 'database', 'language']
+        if (len(token) > 2 and 
+            not any(char.isdigit() for char in token) and
+            any(indicator in token for indicator in tech_indicators)):
+            
+            categorized_skills['technical_term'].append(token)
+            skills.append((token, 'technical_term'))
+            
+    return {
+        'all_skills': [s[0] for s in skills],
+        'categorized': categorized_skills
+    }
+
+
+def parse_resume(file_path):
+    """Custom resume parser"""
+    matcher = Matcher(nlp.vocab)
+    
+    # Extract text from PDF
+    text = extract_text_from_pdf(file_path)
+    
+    # Process text with spaCy
+    doc = nlp(text)
+    
+    # Extract information
+    name = extract_name(doc, matcher)
+    email = extract_email(text)
+    mobile_number = extract_mobile_number(text)
+    
+    # Extract skills using noun chunks
+    skills_data = extract_skills(text, list(doc.noun_chunks))
+    skills = skills_data['all_skills']
+    
+    # Count pages
+    with open(file_path, 'rb') as fh:
+        no_of_pages = len(list(PDFPage.get_pages(fh)))
+    
+    return {
+        'name': name,
+        'email': email, 
+        'mobile_number': mobile_number,
+        'skills': skills,
+        'no_of_pages': no_of_pages
+    }
 
 def run():
     
@@ -237,7 +395,7 @@ def run():
             show_pdf(save_image_path)
 
             ### parsing and extracting whole resume 
-            resume_data = ResumeParser(save_image_path).get_extracted_data()
+            resume_data = parse_resume(save_image_path)  # Replace ResumeParser usage with this line
             if resume_data:
                 
                 ## Get the whole resume data into resume_text
@@ -283,12 +441,14 @@ def run():
                 # Default to Fresher level if no other conditions are met
                 else:
                     cand_level = "Fresher"
-                    st.markdown('<h4 style="text-align: left; color: #fba171;">You are at Fresher level!!</h4>', unsafe_allow_html=True)
-
-
-
                 ## Skills Analyzing and Recommendation
                 st.subheader("**Skills Recommendation 💡**")
+
+                # Get the text from PDF
+                resume_text = pdf_reader(save_image_path)
+
+                # Process resume text with spaCy
+                doc = nlp(resume_text)
 
                 ### Current Analyzed Skills
                 if not isinstance(resume_data['skills'], list):
@@ -393,6 +553,27 @@ def run():
 
                     else:
                         print(f"❌ No match found for: {skill}")
+
+                # Process resume text with spaCy
+                doc = nlp(resume_text)
+                # Extract skills using the processed document
+                skills_data = extract_skills(doc, list(doc.noun_chunks))
+
+                # Display current skills by category
+                st.subheader("**Your Current Skills 🎯**")
+                for category, skills in skills_data['categorized'].items():
+                    if skills:  # Only show categories that have skills
+                        st.write(f"**{category.replace('_', ' ').title()}:**")
+                        st.write(", ".join(skills))
+
+                # Generate recommendations based on missing skills in each category
+                st.subheader("**Recommended Skills 💡**")
+                for category, skills in skills_data['categorized'].items():
+                    if category in SKILLS_DB['technical']:
+                        missing_skills = set(SKILLS_DB['technical'][category]) - set(skills)
+                        if missing_skills:
+                            st.write(f"**{category.replace('_', ' ').title()}:**")
+                            st.write(", ".join(list(missing_skills)[:5]))  # Show top 5 recommendations
 
                 ## Resume Scorer & Resume Writing Tips
                 st.subheader("**Resume Tips & Ideas 🥂**")
